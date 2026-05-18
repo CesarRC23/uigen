@@ -75,6 +75,7 @@ jobs:
         if: always()
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ github.event.issue.number || github.event.pull_request.number }}
         run: |
           python3 - <<'EOF'
           import json, os, sys, urllib.request
@@ -99,7 +100,8 @@ jobs:
               sys.exit(0)
 
           token = os.environ["GITHUB_TOKEN"]
-          url = "https://api.github.com/repos/CesarRC23/uigen/issues/5/comments"
+          issue_number = os.environ["ISSUE_NUMBER"]
+          url = f"https://api.github.com/repos/CesarRC23/uigen/issues/{issue_number}/comments"
           payload = json.dumps({"body": comment}).encode()
           req = urllib.request.Request(url, data=payload, method="POST", headers={
               "Authorization": f"Bearer {token}",
