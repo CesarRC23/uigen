@@ -21,8 +21,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      pull-requests: read
-      issues: read
+      pull-requests: write
+      issues: write
       id-token: write
 
     steps:
@@ -41,6 +41,23 @@ jobs:
           npm run setup
           npm run dev:daemon
 
+      - name: Write MCP config
+        run: |
+          cat > /tmp/mcp-config.json << 'EOF'
+          {
+            "mcpServers": {
+              "playwright": {
+                "command": "npx",
+                "args": [
+                  "@playwright/mcp@latest",
+                  "--allowed-origins",
+                  "localhost:3000;cdn.tailwindcss.com;esm.sh"
+                ]
+              }
+            }
+          }
+          EOF
+
       - name: Run Claude Code Review
         id: claude-review
         uses: anthropics/claude-code-action@v1
@@ -52,23 +69,5 @@ jobs:
           # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
           # or https://code.claude.com/docs/en/cli-reference for available options
 
-          custom_instructions: |
-            The project is already set up and running. The dev server is available at http://localhost:3000.
-            Dev server logs are written to logs.txt in the project root.
-            You can query the SQLite database using the sqlite3 CLI (e.g. sqlite3 prisma/dev.db).
-            Use the mcp__playwright tool to interact with and test the app in the browser.
-
-          mcp_config: |
-            {
-              "mcpServers": {
-                "playwright": {
-                  "command": "npx",
-                  "args": [
-                    "@playwright/mcp@latest",
-                    "--allowed-origins",
-                    "localhost:3000;cdn.tailwindcss.com;esm.sh"
-                  ]
-                }
-              }
-            }
+          claude_args: --mcp-config /tmp/mcp-config.json
 
