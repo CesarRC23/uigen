@@ -63,10 +63,6 @@ jobs:
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
 
-          # This is an optional setting that allows Claude to read CI results on PRs
-          additional_permissions: |
-            actions: read
-
           prompt: |
             The project is already set up and running. The dev server is available at http://localhost:3000.
             Dev server logs are written to logs.txt in the project root.
