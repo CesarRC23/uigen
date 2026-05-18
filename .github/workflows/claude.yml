@@ -76,20 +76,32 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          OUTPUT_FILE="/home/runner/work/_temp/claude-execution-output.json"
-          if [ ! -f "$OUTPUT_FILE" ]; then
-            echo "No output file, skipping"
-            exit 0
-          fi
-          COMMENT=$(jq -r '.output // .result // .content // empty' "$OUTPUT_FILE" 2>/dev/null)
-          if [ -z "$COMMENT" ]; then
-            echo "No content found"
-            cat "$OUTPUT_FILE"
-            exit 0
-          fi
-          curl -f -X POST \
-            -H "Authorization: Bearer $GITHUB_TOKEN" \
-            -H "Accept: application/vnd.github+json" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
-            https://api.github.com/repos/CesarRC23/uigen/issues/5/comments \
-            -d "{\"body\": \"$COMMENT\"}"
+          python3 - <<'EOF'
+          import json, os, sys, urllib.request
+
+          output_file = "/home/runner/work/_temp/claude-execution-output.json"
+          if not os.path.exists(output_file):
+              print("No output file, skipping")
+              sys.exit(0)
+
+          with open(output_file) as f:
+              data = json.load(f)
+
+          comment = data.get("output") or data.get("result") or data.get("content")
+          if not comment:
+              print("No content found")
+              print(json.dumps(data, indent=2))
+              sys.exit(0)
+
+          token = os.environ["GITHUB_TOKEN"]
+          url = "https://api.github.com/repos/CesarRC23/uigen/issues/5/comments"
+          payload = json.dumps({"body": comment}).encode()
+          req = urllib.request.Request(url, data=payload, method="POST", headers={
+              "Authorization": f"Bearer {token}",
+              "Accept": "application/vnd.github+json",
+              "X-GitHub-Api-Version": "2022-11-28",
+              "Content-Type": "application/json",
+          })
+          with urllib.request.urlopen(req) as resp:
+              print(f"Posted comment: {resp.status}")
+          EOF
