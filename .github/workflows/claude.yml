@@ -70,3 +70,33 @@ jobs:
             Use the mcp__playwright tool to interact with and test the app in the browser.
 
           claude_args: --mcp-config /tmp/mcp-config.json
+
+      - name: Post Claude response as issue comment
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          OUTPUT_FILE="/home/runner/work/_temp/claude-execution-output.json"
+          if [ ! -f "$OUTPUT_FILE" ]; then
+            echo "No output file found, skipping"
+            exit 0
+          fi
+
+          COMMENT=$(jq -r '.output // .result // .content // empty' "$OUTPUT_FILE" 2>/dev/null)
+          if [ -z "$COMMENT" ]; then
+            echo "No content extracted from output, skipping"
+            exit 0
+          fi
+
+          if [ "${{ github.event_name }}" = "issues" ] || [ "${{ github.event_name }}" = "issue_comment" ]; then
+            NUMBER="${{ github.event.issue.number }}"
+          elif [ "${{ github.event_name }}" = "pull_request_review" ] || [ "${{ github.event_name }}" = "pull_request_review_comment" ]; then
+            NUMBER="${{ github.event.pull_request.number }}"
+          fi
+
+          if [ -z "$NUMBER" ]; then
+            echo "Could not determine issue/PR number, skipping"
+            exit 0
+          fi
+
+          gh issue comment "$NUMBER" --repo "${{ github.repository }}" --body "$COMMENT"
