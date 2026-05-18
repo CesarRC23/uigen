@@ -88,8 +88,8 @@ jobs:
               data = json.load(f)
 
           if isinstance(data, list):
-              item = data[0] if data else {}
-              comment = item.get("text") or item.get("output") or item.get("content")
+              item = next((i for i in data if i.get("type") == "result"), None)
+              comment = item.get("result") if item else None
           else:
               comment = data.get("output") or data.get("result") or data.get("content")
 
