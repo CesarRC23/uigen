@@ -87,7 +87,12 @@ jobs:
           with open(output_file) as f:
               data = json.load(f)
 
-          comment = data.get("output") or data.get("result") or data.get("content")
+          if isinstance(data, list):
+              item = data[0] if data else {}
+              comment = item.get("text") or item.get("output") or item.get("content")
+          else:
+              comment = data.get("output") or data.get("result") or data.get("content")
+
           if not comment:
               print("No content found")
               print(json.dumps(data, indent=2))
